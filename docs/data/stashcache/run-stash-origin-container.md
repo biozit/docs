@@ -68,12 +68,50 @@ or [kubernetes](https://kubernetes.io/) whose details are beyond the scope of th
 The following sections provide examples for starting origin containers from the command-line as well as a more
 production-appropriate method using systemd.
 
-```console
-user@host $ docker run --rm --publish 1094:1094 \
-             --publish 1095:1095 \
-             --volume <HOST PARTITION>:/xcache/namespace \
-             --env-file=/opt/origin/.env \
-             opensciencegrid/stash-origin:3.6-release
+```file
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osdftest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: osdftest
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: osdftest
+    spec:
+      containers:
+        image: opensciencegrid/stash-origin:3.6-release
+        command: [ "sleep" ]
+        args: [ "infinity" ]
+        ports:
+        - containerPort: 1094
+          hostPort: 1094
+          protocol: TCP
+        - containerPort: 1095
+          hostPort: 1095
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: "1"
+            memory: 1Gi
+      - env:
+        - name: XC_RESOURCENAME
+          value: "osdforigintest"
+        - name: ORIGIN_FQDN
+          value: "osdftest.t2.ucsd.edu"
+        - name: XC_ORIGINEXPORT
+          value: /osdftest/
+        - name: XC_ROOTDIR
+          value: /
+      nodeSelector:
+        kubernetes.io/hostname: osdftest.t2.ucsd.edu
 ```
 
 Replacing `<HOST PARTITION>` with the host directory containing data that your origin should serve.
